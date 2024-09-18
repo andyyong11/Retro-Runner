@@ -6,7 +6,7 @@ pygame.init()
 
 # Global Constants
 SCREEN_HEIGHT = 600
-SCREEN_WIDTH = 1100
+SCREEN_WIDTH = 800
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 # Load images
@@ -49,8 +49,8 @@ except pygame.error as e:
 class Mario:
     X_POS = 80
     Y_POS = 370
-    Y_POS_DUCK = 400
-    JUMP_VEL = 7.5
+    Y_POS_DUCK = 380
+    JUMP_VEL = 8.0
 
     def __init__(self):
         self.jump_img = JUMPING
@@ -176,7 +176,7 @@ class BulletBill(Obstacles):
     def __init__(self, image, scale_factor=4):
         self.type = 0
         super().__init__(image, self.type, scale_factor)
-        self.rect.y = 330
+        self.rect.y = 350
         self.index = 0
     
     def draw(self, SCREEN):
@@ -198,6 +198,19 @@ def main():
     obstacles = []
     death_count = 0
 
+    # Load sound effects
+    jump_sfx = pygame.mixer.Sound("jump.mp3")
+    jump_sfx.set_volume(0.1)
+    death_sfx = pygame.mixer.Sound("death.mp3")
+
+    # Load and play background music (this should be done once, at the start of the game)
+    pygame.mixer.music.load("background_music.mp3")  # Replace with the actual path to your background music file
+    pygame.mixer.music.set_volume(0.5)  # Set the volume (0.0 to 1.0)
+    pygame.mixer.music.play(-1)  # Loop the music indefinitely (-1 means infinite loop)
+    
+    # Track the jump key state
+    jump_key_pressed = False
+
     def score():
         global points, game_speed
         points += 1
@@ -206,20 +219,17 @@ def main():
         
         text = font.render("Points: " + str(points), True, (0, 0, 0))
         textRect = text.get_rect()
-        textRect.center = (1000, 40)
+        textRect.center = (700, 40)
         SCREEN.blit(text, textRect)
 
     def background():
         global x_pos_bg
         image_width = BG.get_width()
-        SCREEN.blit(BG, (x_pos_bg, 0))  # Draw the background
-        SCREEN.blit(BG, (image_width + x_pos_bg, 0))  # Draw a second copy for seamless scrolling
+        SCREEN.blit(BG, (x_pos_bg, 0))  
+        SCREEN.blit(BG, (image_width + x_pos_bg, 0))  
         if x_pos_bg <= -image_width:
             x_pos_bg = 0
-        x_pos_bg -= game_speed  # Move the background left to create scrolling effect
-
-    jump_sfx = pygame.mixer.Sound("jump.mp3")
-    death_sfx = pygame.mixer.Sound("death.mp3")
+        x_pos_bg -= game_speed  
 
     while run:
         for event in pygame.event.get():
@@ -228,9 +238,12 @@ def main():
 
         userInput = pygame.key.get_pressed()
 
-        if userInput[pygame.K_UP]:
+        # Check if the UP key was just pressed
+        if userInput[pygame.K_UP] and not jump_key_pressed:
             jump_sfx.play()
-            
+            jump_key_pressed = True
+        elif not userInput[pygame.K_UP]:
+            jump_key_pressed = False
 
         background()  # Draw the background first
         player.draw(SCREEN)  # Then draw Mario on top of the background
@@ -240,11 +253,11 @@ def main():
             if random.randint(0, 3) == 0:
                 obstacles.append(Plant(PLANT, scale_factor=2.0))  # Adjust scale_factor as needed
             elif random.randint(0, 3) == 1:
-                obstacles.append(Koopa(KOOPA, scale_factor=2))  # Adjust scale_factor as needed
+                obstacles.append(Koopa(KOOPA, scale_factor=2.0))  # Adjust scale_factor as needed
             elif random.randint(0, 3) == 2:
                 obstacles.append(Goomba(GOOMBA, scale_factor=1.3))  # Adjust scale_factor as needed
             elif random.randint(0,3) == 3:
-                obstacles.append(BulletBill(BULLETBILL)) # Adjust scale_factor as needed
+                obstacles.append(BulletBill(BULLETBILL, scale_factor=2.0)) # Adjust scale_factor as needed
 
         for obstacle in obstacles:
             obstacle.draw(SCREEN)
@@ -257,8 +270,9 @@ def main():
             
         score()
 
-        clock.tick(60)
+        clock.tick(45)
         pygame.display.update()
+
 
 # Start the game
 def menu(death_count):
